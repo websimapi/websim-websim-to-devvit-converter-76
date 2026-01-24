@@ -1,8 +1,7 @@
 export const standaloneRealtime = `
     // [WebSim] Trystero (P2P) Realtime Adapter
     // Uses WebRTC/Torrent via free public trackers for serverless multiplayer
-    import { joinRoom } from 'https://esm.sh/trystero/torrent';
-
+    
     class WebsimSocket {
         constructor() {
             this.presence = {};
@@ -19,23 +18,28 @@ export const standaloneRealtime = `
             setTimeout(() => this._init(), 100);
         }
         
-        _init() {
-            // Unique room ID based on project ID or generic global
-            // We use a prefix to avoid collisions with other Trystero apps
-            const projectId = window.websim_project_id || 'global-standalone';
-            const roomId = 'ws-p2p-' + projectId;
-            
-            console.log('[WebSim:P2P] Joining Mesh Room:', roomId);
-            
-            const config = { appId: 'websim-standalone' };
-            this.room = joinRoom(config, roomId);
-            
-            // Define Actions
-            const [sendPresence, getPresence] = this.room.makeAction('presence');
-            const [sendState, getState] = this.room.makeAction('state');
-            const [sendMsg, getMsg] = this.room.makeAction('msg');
-            
-            this.actions = { sendPresence, sendState, sendMsg };
+        async _init() {
+            try {
+                // Dynamic Import to avoid top-level await/hoisting issues in polyfill bundle
+                // Using a specific version to ensure stability
+                const { joinRoom } = await import('https://esm.sh/trystero@0.19.2/torrent');
+
+                // Unique room ID based on project ID or generic global
+                // We use a prefix to avoid collisions with other Trystero apps
+                const projectId = window.websim_project_id || 'global-standalone';
+                const roomId = 'ws-p2p-' + projectId;
+                
+                console.log('[WebSim:P2P] Joining Mesh Room:', roomId);
+                
+                const config = { appId: 'websim-standalone' };
+                this.room = joinRoom(config, roomId);
+                
+                // Define Actions
+                const [sendPresence, getPresence] = this.room.makeAction('presence');
+                const [sendState, getState] = this.room.makeAction('state');
+                const [sendMsg, getMsg] = this.room.makeAction('msg');
+                
+                this.actions = { sendPresence, sendState, sendMsg };
             
             // 1. Handle Presence
             getPresence((data, peerId) => {
@@ -69,6 +73,10 @@ export const standaloneRealtime = `
             
             // Heartbeat
             setInterval(() => this._broadcastPresence(), 5000);
+            
+            } catch(e) {
+                console.error('[WebSim:P2P] Failed to initialize Trystero:', e);
+            }
         }
         
         async _joinSelf() {

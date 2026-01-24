@@ -383,17 +383,22 @@ export default {
     // Polyfills in src/client
     
     // Generate Global Shims for CDN packages
-    let shimCode = '';
+    // Fix: We must separate imports from assignments to avoid "Imports must be at top level" syntax error
+    let shimImports = [];
+    let shimAssigns = [];
+
     if (analyzer.globalShims.size > 0) {
         shimCode += '// Global Shims for CDN libraries\n';
-        if (analyzer.globalShims.has('react')) shimCode += "import React from 'react'; window.React = React;\n";
-        if (analyzer.globalShims.has('react-dom')) shimCode += "import ReactDOM from 'react-dom'; window.ReactDOM = ReactDOM;\n";
-        if (analyzer.globalShims.has('three')) shimCode += "import * as THREE from 'three'; window.THREE = THREE;\n";
-        if (analyzer.globalShims.has('jquery')) shimCode += "import $ from 'jquery'; window.$ = window.jQuery = $;\n";
-        if (analyzer.globalShims.has('pixi.js')) shimCode += "import * as PIXI from 'pixi.js'; window.PIXI = PIXI;\n";
-        if (analyzer.globalShims.has('p5')) shimCode += "import p5 from 'p5'; window.p5 = p5;\n";
-        shimCode += '\n';
+        if (analyzer.globalShims.has('react')) { shimImports.push("import React from 'react';"); shimAssigns.push("window.React = React;"); }
+        if (analyzer.globalShims.has('react-dom')) { shimImports.push("import ReactDOM from 'react-dom';"); shimAssigns.push("window.ReactDOM = ReactDOM;"); }
+        if (analyzer.globalShims.has('three')) { shimImports.push("import * as THREE from 'three';"); shimAssigns.push("window.THREE = THREE;"); }
+        if (analyzer.globalShims.has('jquery')) { shimImports.push("import $ from 'jquery';"); shimAssigns.push("window.$ = window.jQuery = $;"); }
+        if (analyzer.globalShims.has('pixi.js')) { shimImports.push("import * as PIXI from 'pixi.js';"); shimAssigns.push("window.PIXI = PIXI;"); }
+        if (analyzer.globalShims.has('p5')) { shimImports.push("import p5 from 'p5';"); shimAssigns.push("window.p5 = p5;"); }
     }
+
+    // Combined shim block: Imports first, then assignments
+    let shimCode = shimImports.join('\n') + '\n\n' + shimAssigns.join('\n') + '\n';
 
     // Prepare Polyfill Imports
     let combinedPolyfills = '';
